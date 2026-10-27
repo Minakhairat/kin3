@@ -1,0 +1,369 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all unmapped paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (
+          request.auth.token.email != null && (
+            request.auth.token.email.lower() == 'minakhairat96@gmail.com' ||
+            request.auth.token.email.lower() == 'kero@kin-media-production.com' ||
+            request.auth.token.email.lower() == 'keromaged582@gmail.com' ||
+            request.auth.token.email.lower() == 'kenmediaproduction1@gmail.com'
+          )
+        ) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isClientOfDeliverable(delivData) {
+      return isSignedIn() &&
+             request.auth.token.email != null &&
+             delivData.clientEmail is string &&
+             delivData.clientEmail.lower() == request.auth.token.email.lower();
+    }
+
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.role in ['admin', 'client'] &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidDeliverable(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.clientEmail is string && data.clientEmail.size() > 0 && data.clientEmail.size() <= 256 &&
+             data.link is string && data.link.size() > 0 && data.link.size() <= 1000 &&
+             data.status in ['shooting', 'editing', 'review', 'delivered'] &&
+             data.createdBy is string && data.createdBy.size() <= 128 &&
+             (!('clientName' in data) || (data.clientName is string && data.clientName.size() <= 128)) &&
+             (!('clientPhone' in data) || (data.clientPhone is string && data.clientPhone.size() <= 32)) &&
+             (!('previewVideoUrl' in data) || (data.previewVideoUrl is string && data.previewVideoUrl.size() <= 1000)) &&
+             (!('serviceType' in data) || (data.serviceType in ['podcast', 'reels', 'commercial', 'other'])) &&
+             (!('recordingDate' in data) || (data.recordingDate is string && data.recordingDate.size() <= 64)) &&
+             (!('expiresAt' in data) || (data.expiresAt is string && data.expiresAt.size() <= 64)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('viewCount' in data) || (data.viewCount is number)) &&
+             (!('downloadCount' in data) || (data.downloadCount is number)) &&
+             (!('lastViewedAt' in data) || (data.lastViewedAt is string && data.lastViewedAt.size() <= 64)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidRevision(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.deliverableId is string && data.deliverableId.size() <= 128 &&
+             data.authorEmail is string && data.authorEmail.size() <= 256 &&
+             data.authorUid is string && data.authorUid.size() <= 128 &&
+             data.comment is string && data.comment.size() > 0 && data.comment.size() <= 1000 &&
+             (!('timecode' in data) || (data.timecode is string && data.timecode.size() <= 32)) &&
+             (!('category' in data) || (data.category in ['cut', 'audio', 'color', 'caption', 'general'])) &&
+             (!('status' in data) || (data.status in ['pending', 'in_progress', 'resolved'])) &&
+             (!('adminReply' in data) || (data.adminReply is string && data.adminReply.size() <= 1000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidReview(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.authorUid is string && data.authorUid.size() <= 128 &&
+             data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 128 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() > 0 && data.comment.size() <= 1000 &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             (!('authorEmail' in data) || (data.authorEmail is string && data.authorEmail.size() <= 256)) &&
+             (!('authorProject' in data) || (data.authorProject is string && data.authorProject.size() <= 150)) &&
+             (!('serviceType' in data) || (data.serviceType in ['podcast', 'reels', 'commercial', 'general'])) &&
+             (!('isFeatured' in data) || (data.isFeatured is bool)) &&
+             (!('adminReply' in data) || (data.adminReply is string && data.adminReply.size() <= 1000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidPackageCMS(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.category in ['podcasts', 'reels', 'commercials'] &&
+             data.nameEn is string && data.nameEn.size() > 0 && data.nameEn.size() <= 150 &&
+             data.nameAr is string && data.nameAr.size() > 0 && data.nameAr.size() <= 150 &&
+             data.priceEGP is number && data.priceEGP >= 0 &&
+             data.isActive is bool &&
+             (!('originalPriceEGP' in data) || (data.originalPriceEGP is number && data.originalPriceEGP >= 0)) &&
+             (!('periodAr' in data) || (data.periodAr is string && data.periodAr.size() <= 64)) &&
+             (!('periodEn' in data) || (data.periodEn is string && data.periodEn.size() <= 64)) &&
+             (!('highlightAr' in data) || (data.highlightAr is string && data.highlightAr.size() <= 150)) &&
+             (!('highlightEn' in data) || (data.highlightEn is string && data.highlightEn.size() <= 150)) &&
+             (!('descriptionAr' in data) || (data.descriptionAr is string && data.descriptionAr.size() <= 500)) &&
+             (!('descriptionEn' in data) || (data.descriptionEn is string && data.descriptionEn.size() <= 500)) &&
+             (!('deliverablesAr' in data) || (data.deliverablesAr is string && data.deliverablesAr.size() <= 300)) &&
+             (!('deliverablesEn' in data) || (data.deliverablesEn is string && data.deliverablesEn.size() <= 300)) &&
+             (!('isPopular' in data) || (data.isPopular is bool)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidPromotion(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.titleAr is string && data.titleAr.size() > 0 && data.titleAr.size() <= 150 &&
+             data.discountPercent is number && data.discountPercent >= 1 && data.discountPercent <= 90 &&
+             data.startDate is string && data.startDate.size() <= 32 &&
+             data.endDate is string && data.endDate.size() <= 32 &&
+             data.isActive is bool &&
+             (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 150)) &&
+             (!('code' in data) || (data.code is string && data.code.size() <= 32)) &&
+             (!('applicableCategory' in data) || (data.applicableCategory in ['all', 'podcasts', 'reels', 'commercials'])) &&
+             (!('bannerTextAr' in data) || (data.bannerTextAr is string && data.bannerTextAr.size() <= 300)) &&
+             (!('bannerTextEn' in data) || (data.bannerTextEn is string && data.bannerTextEn.size() <= 300)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidExpense(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.amountEGP is number && data.amountEGP > 0 &&
+             data.category in ['rent', 'salaries_crew', 'equipment', 'marketing', 'utilities_hospitality', 'maintenance', 'other'] &&
+             data.date is string && data.date.size() <= 32 &&
+             data.recordedBy is string && data.recordedBy.size() <= 128 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('invoiceRef' in data) || (data.invoiceRef is string && data.invoiceRef.size() <= 64)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidTransaction(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.totalAmountEGP is number && data.totalAmountEGP >= 0 &&
+             data.paidAmountEGP is number && data.paidAmountEGP >= 0 &&
+             data.paymentMethod in ['cash', 'instapay', 'vodafone_cash', 'bank_transfer', 'card'] &&
+             data.paymentStatus in ['paid', 'partial', 'pending'] &&
+             data.sessionDate is string && data.sessionDate.size() <= 32 &&
+             (!('remainingAmountEGP' in data) || (data.remainingAmountEGP is number)) &&
+             (!('clientName' in data) || (data.clientName is string && data.clientName.size() <= 128)) &&
+             (!('clientEmail' in data) || (data.clientEmail is string && data.clientEmail.size() <= 256)) &&
+             (!('clientPhone' in data) || (data.clientPhone is string && data.clientPhone.size() <= 32)) &&
+             (!('serviceType' in data) || (data.serviceType in ['podcast', 'reels', 'commercial', 'gear_rental', 'other'])) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() <= 128)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidGear(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             data.category in ['camera', 'lens', 'audio', 'lighting', 'grip', 'accessories'] &&
+             data.status in ['available', 'in_use', 'maintenance', 'external_shoot'] &&
+             (!('serialNumber' in data) || (data.serialNumber is string && data.serialNumber.size() <= 64)) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 100)) &&
+             (!('conditionNotes' in data) || (data.conditionNotes is string && data.conditionNotes.size() <= 500)) &&
+             (!('purchaseDate' in data) || (data.purchaseDate is string && data.purchaseDate.size() <= 32)) &&
+             (!('purchasePriceEGP' in data) || (data.purchasePriceEGP is number)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidBooking(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 128 &&
+             data.clientPhone is string && data.clientPhone.size() > 0 && data.clientPhone.size() <= 32 &&
+             data.category in ['podcasts', 'reels', 'commercials', 'custom'] &&
+             data.bookingDate is string && data.bookingDate.size() <= 32 &&
+             data.status in ['pending', 'confirmed', 'completed', 'cancelled'] &&
+             (!('clientEmail' in data) || (data.clientEmail is string && data.clientEmail.size() <= 256)) &&
+             (!('packageId' in data) || (data.packageId is string && data.packageId.size() <= 128)) &&
+             (!('timeSlot' in data) || (data.timeSlot is string && data.timeSlot.size() <= 64)) &&
+             (!('totalAmountEGP' in data) || (data.totalAmountEGP is number)) &&
+             (!('depositPaid' in data) || (data.depositPaid is bool)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidCoupon(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.code is string && data.code.size() > 0 && data.code.size() <= 32 &&
+             data.discountType in ['percent', 'fixed'] &&
+             data.discountValue is number && data.discountValue > 0 &&
+             data.isActive is bool &&
+             (!('expiresAt' in data) || (data.expiresAt is string && data.expiresAt.size() <= 32)) &&
+             (!('minBookingAmount' in data) || (data.minBookingAmount is number)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 200)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidInvoice(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.invoiceNumber is string && data.invoiceNumber.size() > 0 && data.invoiceNumber.size() <= 64 &&
+             data.issueDate is string && data.issueDate.size() <= 32 &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 128 &&
+             data.total is number &&
+             (!('clientPhone' in data) || (data.clientPhone is string && data.clientPhone.size() <= 32)) &&
+             (!('clientEmail' in data) || (data.clientEmail is string && data.clientEmail.size() <= 256)) &&
+             (!('serviceTitle' in data) || (data.serviceTitle is string && data.serviceTitle.size() <= 200)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 64)) &&
+             (!('subtotal' in data) || (data.subtotal is number)) &&
+             (!('discountPercent' in data) || (data.discountPercent is number)) &&
+             (!('discountAmount' in data) || (data.discountAmount is number)) &&
+             (!('paidAmount' in data) || (data.paidAmount is number)) &&
+             (!('balanceDue' in data) || (data.balanceDue is number)) &&
+             (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 64)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Admins registry
+    match /admins/{userId} {
+      allow read, write: if isValidId(userId) && isAdmin();
+    }
+
+    // Users profiles
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isSignedIn() &&
+                    (isAdmin() || (request.auth.uid == userId && incoming().role == 'client')) &&
+                    isValidUser(incoming());
+      allow update: if isValidId(userId) && isSignedIn() &&
+                    (isAdmin() || (request.auth.uid == userId && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']))) &&
+                    isValidUser(incoming());
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Deliverables containing client links
+    match /deliverables/{deliverableId} {
+      allow get: if isValidId(deliverableId) && isSignedIn() && (
+        isAdmin() || isClientOfDeliverable(resource.data)
+      );
+
+      allow list: if isSignedIn() && (
+        isAdmin() || isClientOfDeliverable(resource.data)
+      );
+
+      allow create: if isValidId(deliverableId) && isAdmin() &&
+                    isValidDeliverable(incoming()) &&
+                    incoming().createdBy == request.auth.uid;
+
+      allow update: if isValidId(deliverableId) && isValidDeliverable(incoming()) && (
+        isAdmin() ||
+        (
+          isClientOfDeliverable(existing()) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['viewCount', 'downloadCount', 'lastViewedAt'])
+        )
+      );
+
+      allow delete: if isValidId(deliverableId) && isAdmin();
+
+      // Client Revisions Subcollection
+      match /revisions/{revisionId} {
+        allow get: if isValidId(revisionId) && isSignedIn() && (
+          isAdmin() ||
+          isClientOfDeliverable(get(/databases/$(database)/documents/deliverables/$(deliverableId)).data)
+        );
+
+        allow list: if isSignedIn() && (
+          isAdmin() ||
+          isClientOfDeliverable(get(/databases/$(database)/documents/deliverables/$(deliverableId)).data)
+        );
+
+        allow create: if isValidId(revisionId) && isSignedIn() &&
+                      isValidRevision(incoming()) &&
+                      incoming().authorUid == request.auth.uid &&
+                      incoming().deliverableId == deliverableId &&
+                      (
+                        isAdmin() ||
+                        isClientOfDeliverable(get(/databases/$(database)/documents/deliverables/$(deliverableId)).data)
+                      );
+
+        allow update, delete: if isValidId(revisionId) && isAdmin();
+      }
+    }
+
+    // 1. Client Reviews with moderation
+    match /reviews/{reviewId} {
+      // Anyone can get or list approved reviews; admins can read any
+      allow get: if isValidId(reviewId) && (resource.data.status == 'approved' || isAdmin());
+      allow list: if resource.data.status == 'approved' || isAdmin();
+
+      // Authenticated users can submit reviews with status: 'pending'
+      allow create: if isValidId(reviewId) && isSignedIn() &&
+                    isValidReview(incoming()) &&
+                    incoming().authorUid == request.auth.uid &&
+                    (incoming().status == 'pending' || isAdmin());
+
+      // Only admins can approve, edit, toggle featured, or delete reviews
+      allow update: if isValidId(reviewId) && isAdmin() && isValidReview(incoming());
+      allow delete: if isValidId(reviewId) && isAdmin();
+    }
+
+    // 2. Dynamic Pricing Packages CMS
+    match /packages_cms/{packageId} {
+      allow get: if isValidId(packageId);
+      allow list: if true;
+      allow create, update, delete: if isValidId(packageId) && isAdmin() && (request.method == 'delete' || isValidPackageCMS(incoming()));
+    }
+
+    // 3. Limited-Time Promotions
+    match /promotions/{promotionId} {
+      allow get: if isValidId(promotionId);
+      allow list: if true;
+      allow create, update, delete: if isValidId(promotionId) && isAdmin() && (request.method == 'delete' || isValidPromotion(incoming()));
+    }
+
+    // 4. Studio Operational Expenses (Admin Only)
+    match /expenses/{expenseId} {
+      allow get, list, create, update, delete: if isValidId(expenseId) && isAdmin() && (request.method == 'delete' || isValidExpense(incoming()));
+    }
+
+    // 5. Studio Financial Transactions / Revenue (Admin Only)
+    match /financial_transactions/{transactionId} {
+      allow get, list, create, update, delete: if isValidId(transactionId) && isAdmin() && (request.method == 'delete' || isValidTransaction(incoming()));
+    }
+
+    // 6. Gear & Equipment Inventory (Admin Only)
+    match /gear_inventory/{gearId} {
+      allow get, list, create, update, delete: if isValidId(gearId) && isAdmin() && (request.method == 'delete' || isValidGear(incoming()));
+    }
+
+    // 7. Studio Bookings
+    match /studio_bookings/{bookingId} {
+      allow get: if isValidId(bookingId) && (isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email);
+      allow create: if isValidId(bookingId) && isValidBooking(incoming());
+      allow update, delete: if isValidId(bookingId) && isAdmin();
+    }
+
+    // 8. Custom Discount Promo Codes
+    match /coupons/{couponId} {
+      allow get: if isValidId(couponId);
+      allow list: if true;
+      allow create, update, delete: if isValidId(couponId) && isAdmin() && (request.method == 'delete' || isValidCoupon(incoming()));
+    }
+
+    // 9. Studio Invoices Registry
+    match /invoices/{invoiceId} {
+      allow get: if isValidId(invoiceId) && (isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email);
+      allow create, update, delete: if isValidId(invoiceId) && isAdmin() && (request.method == 'delete' || isValidInvoice(incoming()));
+    }
+  }
+}

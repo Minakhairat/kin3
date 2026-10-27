@@ -1,0 +1,8 @@
+{
+  "name": "Kin Media Production | Keep It Neat",
+  "description": "Cairo-based creative media production studio in Korba, Heliopolis. End-to-end podcasts, monthly social reels, and cinematic commercial production.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

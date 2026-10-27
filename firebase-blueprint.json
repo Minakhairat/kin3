@@ -1,0 +1,313 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in Kin Media Production",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID (auth UID)", "maxLength": 128 },
+        "email": { "type": "string", "description": "User email address", "maxLength": 256 },
+        "displayName": { "type": "string", "description": "Display name of the user", "maxLength": 128 },
+        "role": { "type": "string", "description": "Role of the user: admin or client", "enum": ["admin", "client"] },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin access permission record",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Email address of admin", "maxLength": 256 },
+        "createdAt": { "type": "string", "description": "ISO timestamp when admin role was granted" }
+      },
+      "required": ["email"]
+    },
+    "Deliverable": {
+      "title": "Deliverable",
+      "description": "Media project deliverable and link assigned by admin to client email",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Deliverable ID", "maxLength": 128 },
+        "title": { "type": "string", "description": "Project or session title", "maxLength": 200 },
+        "clientEmail": { "type": "string", "description": "Target client email permitted to access link", "maxLength": 256 },
+        "clientName": { "type": "string", "description": "Client name or brand", "maxLength": 128 },
+        "clientPhone": { "type": "string", "description": "Client phone number for WhatsApp dispatch", "maxLength": 32 },
+        "link": { "type": "string", "description": "Secure deliverable link (Drive, Frame.io, etc)", "maxLength": 1000 },
+        "previewVideoUrl": { "type": "string", "description": "Direct video or embed preview URL", "maxLength": 1000 },
+        "status": { "type": "string", "description": "Production state", "enum": ["shooting", "editing", "review", "delivered"] },
+        "serviceType": { "type": "string", "description": "Type of service", "enum": ["podcast", "reels", "commercial", "other"] },
+        "recordingDate": { "type": "string", "description": "Shoot date string", "maxLength": 64 },
+        "expiresAt": { "type": "string", "description": "ISO date string when link access expires", "maxLength": 64 },
+        "notes": { "type": "string", "description": "Session and editing notes for client", "maxLength": 2000 },
+        "viewCount": { "type": "number", "description": "Total views recorded" },
+        "downloadCount": { "type": "number", "description": "Total download clicks" },
+        "lastViewedAt": { "type": "string", "description": "ISO timestamp of last client access", "maxLength": 64 },
+        "createdBy": { "type": "string", "description": "Admin user ID who created deliverable", "maxLength": 128 },
+        "createdAt": { "type": "string", "description": "Timestamp created" },
+        "updatedAt": { "type": "string", "description": "Timestamp updated" }
+      },
+      "required": ["id", "title", "clientEmail", "link", "status", "createdBy"]
+    },
+    "Revision": {
+      "title": "Revision",
+      "description": "Client revision note or feedback on deliverable",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Revision ID", "maxLength": 128 },
+        "deliverableId": { "type": "string", "description": "Parent deliverable ID", "maxLength": 128 },
+        "authorEmail": { "type": "string", "description": "Email of author", "maxLength": 256 },
+        "authorUid": { "type": "string", "description": "UID of author", "maxLength": 128 },
+        "comment": { "type": "string", "description": "Revision comment", "maxLength": 1000 },
+        "timecode": { "type": "string", "description": "Video timestamp for revision (e.g. 03:45)", "maxLength": 32 },
+        "category": { "type": "string", "description": "Revision category", "enum": ["cut", "audio", "color", "caption", "general"] },
+        "status": { "type": "string", "description": "Revision status", "enum": ["pending", "in_progress", "resolved"] },
+        "adminReply": { "type": "string", "description": "Admin reply note", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Timestamp created" }
+      },
+      "required": ["id", "deliverableId", "authorEmail", "authorUid", "comment"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Client testimonial and rating with admin moderation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Review ID", "maxLength": 128 },
+        "authorUid": { "type": "string", "description": "Auth UID of the client author", "maxLength": 128 },
+        "authorName": { "type": "string", "description": "Name of client", "maxLength": 128 },
+        "authorEmail": { "type": "string", "description": "Email of client", "maxLength": 256 },
+        "authorProject": { "type": "string", "description": "Podcast name, brand, or company", "maxLength": 150 },
+        "rating": { "type": "number", "description": "Rating score between 1 and 5" },
+        "comment": { "type": "string", "description": "Review feedback comment", "maxLength": 1000 },
+        "serviceType": { "type": "string", "description": "Service category reviewed", "enum": ["podcast", "reels", "commercial", "general"] },
+        "status": { "type": "string", "description": "Moderation status", "enum": ["pending", "approved", "rejected"] },
+        "isFeatured": { "type": "boolean", "description": "Whether to highlight on homepage" },
+        "adminReply": { "type": "string", "description": "Optional studio admin reply note", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 },
+        "updatedAt": { "type": "string", "description": "Update timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "authorUid", "authorName", "rating", "comment", "status"]
+    },
+    "PackageCMS": {
+      "title": "PackageCMS",
+      "description": "Dynamic pricing packages managed by studio admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Package identifier", "maxLength": 128 },
+        "category": { "type": "string", "description": "Package category", "enum": ["podcasts", "reels", "commercials"] },
+        "nameEn": { "type": "string", "description": "English package title", "maxLength": 150 },
+        "nameAr": { "type": "string", "description": "Arabic package title", "maxLength": 150 },
+        "priceEGP": { "type": "number", "description": "Active price in Egyptian Pounds" },
+        "originalPriceEGP": { "type": "number", "description": "Original standard price before discount" },
+        "periodAr": { "type": "string", "description": "Billing period in Arabic", "maxLength": 64 },
+        "periodEn": { "type": "string", "description": "Billing period in English", "maxLength": 64 },
+        "highlightAr": { "type": "string", "description": "Key highlight in Arabic", "maxLength": 150 },
+        "highlightEn": { "type": "string", "description": "Key highlight in English", "maxLength": 150 },
+        "descriptionAr": { "type": "string", "description": "Package details in Arabic", "maxLength": 500 },
+        "descriptionEn": { "type": "string", "description": "Package details in English", "maxLength": 500 },
+        "deliverablesAr": { "type": "string", "description": "Deliverables list in Arabic", "maxLength": 300 },
+        "deliverablesEn": { "type": "string", "description": "Deliverables list in English", "maxLength": 300 },
+        "isPopular": { "type": "boolean", "description": "Flag for featured or popular badge" },
+        "isActive": { "type": "boolean", "description": "Visibility on public website" },
+        "updatedAt": { "type": "string", "description": "Last updated timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "category", "nameEn", "nameAr", "priceEGP", "isActive"]
+    },
+    "Promotion": {
+      "title": "Promotion",
+      "description": "Limited-time promotional discounts and site announcements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Promotion ID", "maxLength": 128 },
+        "titleAr": { "type": "string", "description": "Arabic promotion headline", "maxLength": 150 },
+        "titleEn": { "type": "string", "description": "English promotion headline", "maxLength": 150 },
+        "code": { "type": "string", "description": "Promo coupon code", "maxLength": 32 },
+        "discountPercent": { "type": "number", "description": "Discount percentage (e.g. 15 or 20)" },
+        "startDate": { "type": "string", "description": "Start date YYYY-MM-DD", "maxLength": 32 },
+        "endDate": { "type": "string", "description": "End date YYYY-MM-DD", "maxLength": 32 },
+        "applicableCategory": { "type": "string", "description": "Target category", "enum": ["all", "podcasts", "reels", "commercials"] },
+        "bannerTextAr": { "type": "string", "description": "Banner message in Arabic", "maxLength": 300 },
+        "bannerTextEn": { "type": "string", "description": "Banner message in English", "maxLength": 300 },
+        "isActive": { "type": "boolean", "description": "Whether promo is actively running" },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "titleAr", "discountPercent", "startDate", "endDate", "isActive"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Studio operational expense record for P&L tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Expense entry ID", "maxLength": 128 },
+        "title": { "type": "string", "description": "Expense item description", "maxLength": 200 },
+        "amountEGP": { "type": "number", "description": "Expense amount in EGP" },
+        "category": { "type": "string", "description": "Expense classification", "enum": ["rent", "salaries_crew", "equipment", "marketing", "utilities_hospitality", "maintenance", "other"] },
+        "date": { "type": "string", "description": "Transaction date YYYY-MM-DD", "maxLength": 32 },
+        "notes": { "type": "string", "description": "Internal notes or receipts", "maxLength": 1000 },
+        "invoiceRef": { "type": "string", "description": "Receipt or invoice reference ID", "maxLength": 64 },
+        "recordedBy": { "type": "string", "description": "Admin UID who entered record", "maxLength": 128 },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "title", "amountEGP", "category", "date", "recordedBy"]
+    },
+    "FinancialTransaction": {
+      "title": "FinancialTransaction",
+      "description": "Client revenue payment or booking income transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Transaction entry ID", "maxLength": 128 },
+        "title": { "type": "string", "description": "Session or job title", "maxLength": 200 },
+        "clientName": { "type": "string", "description": "Client or company name", "maxLength": 128 },
+        "clientEmail": { "type": "string", "description": "Client email", "maxLength": 256 },
+        "clientPhone": { "type": "string", "description": "Client phone number", "maxLength": 32 },
+        "serviceType": { "type": "string", "description": "Service provided", "enum": ["podcast", "reels", "commercial", "gear_rental", "other"] },
+        "totalAmountEGP": { "type": "number", "description": "Total agreed price" },
+        "paidAmountEGP": { "type": "number", "description": "Amount collected to date" },
+        "remainingAmountEGP": { "type": "number", "description": "Balance due" },
+        "paymentMethod": { "type": "string", "description": "Method of collection", "enum": ["cash", "instapay", "vodafone_cash", "bank_transfer", "card"] },
+        "paymentStatus": { "type": "string", "description": "Payment status", "enum": ["paid", "partial", "pending"] },
+        "sessionDate": { "type": "string", "description": "Session date YYYY-MM-DD", "maxLength": 32 },
+        "notes": { "type": "string", "description": "Payment notes", "maxLength": 1000 },
+        "createdBy": { "type": "string", "description": "Admin UID who recorded transaction", "maxLength": 128 },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "title", "totalAmountEGP", "paidAmountEGP", "paymentMethod", "paymentStatus", "sessionDate"]
+    },
+    "StudioGear": {
+      "title": "StudioGear",
+      "description": "Studio hardware and equipment inventory item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Gear item ID", "maxLength": 128 },
+        "name": { "type": "string", "description": "Equipment name and model", "maxLength": 150 },
+        "category": { "type": "string", "description": "Gear type", "enum": ["camera", "lens", "audio", "lighting", "grip", "accessories"] },
+        "serialNumber": { "type": "string", "description": "Serial or asset tag", "maxLength": 64 },
+        "status": { "type": "string", "description": "Current availability status", "enum": ["available", "in_use", "maintenance", "external_shoot"] },
+        "location": { "type": "string", "description": "Studio room or storage spot", "maxLength": 100 },
+        "conditionNotes": { "type": "string", "description": "Condition status or service date", "maxLength": 500 },
+        "purchaseDate": { "type": "string", "description": "Purchase date YYYY-MM-DD", "maxLength": 32 },
+        "purchasePriceEGP": { "type": "number", "description": "Cost of item" },
+        "updatedAt": { "type": "string", "description": "Last status update timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "name", "category", "status"]
+    },
+    "StudioBooking": {
+      "title": "StudioBooking",
+      "description": "Studio schedule session booking and slot reservation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Booking reservation ID", "maxLength": 128 },
+        "clientName": { "type": "string", "description": "Client full name", "maxLength": 128 },
+        "clientEmail": { "type": "string", "description": "Client email address", "maxLength": 256 },
+        "clientPhone": { "type": "string", "description": "Client phone number", "maxLength": 32 },
+        "packageId": { "type": "string", "description": "Booked package ID", "maxLength": 128 },
+        "category": { "type": "string", "description": "Service category", "enum": ["podcasts", "reels", "commercials", "custom"] },
+        "bookingDate": { "type": "string", "description": "Reservation date YYYY-MM-DD", "maxLength": 32 },
+        "timeSlot": { "type": "string", "description": "Slot hours (e.g. 10:00 - 14:00)", "maxLength": 64 },
+        "status": { "type": "string", "description": "Booking workflow state", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+        "totalAmountEGP": { "type": "number", "description": "Agreed price in EGP" },
+        "depositPaid": { "type": "boolean", "description": "Whether advance deposit is confirmed" },
+        "notes": { "type": "string", "description": "Session requirements or notes", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "clientName", "clientPhone", "category", "bookingDate", "status"]
+    },
+    "CouponCode": {
+      "title": "CouponCode",
+      "description": "Custom discount promo code redeemable during booking checkout",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Coupon uppercase code ID", "maxLength": 64 },
+        "code": { "type": "string", "description": "Code string", "maxLength": 32 },
+        "discountType": { "type": "string", "description": "Type of discount", "enum": ["percent", "fixed"] },
+        "discountValue": { "type": "number", "description": "Discount amount (e.g. 20 for 20% or 1000 for 1000 EGP)" },
+        "expiresAt": { "type": "string", "description": "Expiration date YYYY-MM-DD", "maxLength": 32 },
+        "isActive": { "type": "boolean", "description": "Whether coupon can be applied" },
+        "minBookingAmount": { "type": "number", "description": "Minimum subtotal required to apply" },
+        "description": { "type": "string", "description": "Admin notes or description", "maxLength": 200 },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 }
+      },
+      "required": ["id", "code", "discountType", "discountValue", "isActive"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Stored client invoice and quote record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Invoice ID", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "description": "Formal invoice number", "maxLength": 64 },
+        "issueDate": { "type": "string", "description": "Date of issue", "maxLength": 32 },
+        "clientName": { "type": "string", "description": "Client full name", "maxLength": 128 },
+        "clientPhone": { "type": "string", "description": "Client phone number", "maxLength": 32 },
+        "clientEmail": { "type": "string", "description": "Client email", "maxLength": 256 },
+        "serviceTitle": { "type": "string", "description": "Session title", "maxLength": 200 },
+        "category": { "type": "string", "description": "Category", "maxLength": 64 },
+        "subtotal": { "type": "number", "description": "Subtotal in EGP" },
+        "discountPercent": { "type": "number", "description": "Discount percent" },
+        "discountAmount": { "type": "number", "description": "Discount value in EGP" },
+        "total": { "type": "number", "description": "Net total" },
+        "paidAmount": { "type": "number", "description": "Paid amount" },
+        "balanceDue": { "type": "number", "description": "Remaining due" },
+        "paymentMethod": { "type": "string", "description": "Payment method", "maxLength": 64 },
+        "notes": { "type": "string", "description": "Notes", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Creation timestamp", "maxLength": 64 },
+        "updatedAt": { "type": "string", "description": "Last update", "maxLength": 64 }
+      },
+      "required": ["id", "invoiceNumber", "issueDate", "clientName", "total"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile records indexed by auth UID"
+    },
+    "/admins/{userId}": {
+      "schema": "Admin",
+      "description": "Admin privileges collection indexed by user UID"
+    },
+    "/deliverables/{deliverableId}": {
+      "schema": "Deliverable",
+      "description": "Project deliverables containing secure media links targeted by client email"
+    },
+    "/deliverables/{deliverableId}/revisions/{revisionId}": {
+      "schema": "Revision",
+      "description": "Client revision and feedback requests per deliverable"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Authentic client reviews with admin moderation and public display"
+    },
+    "/packages_cms/{packageId}": {
+      "schema": "PackageCMS",
+      "description": "Dynamic pricing packages maintained by studio admin"
+    },
+    "/promotions/{promotionId}": {
+      "schema": "Promotion",
+      "description": "Limited-time discount offers and promotion banners"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Studio operational costs and expenses for P&L tracking"
+    },
+    "/financial_transactions/{transactionId}": {
+      "schema": "FinancialTransaction",
+      "description": "Studio client payments and revenue records"
+    },
+    "/gear_inventory/{gearId}": {
+      "schema": "StudioGear",
+      "description": "Studio equipment and hardware inventory"
+    },
+    "/studio_bookings/{bookingId}": {
+      "schema": "StudioBooking",
+      "description": "Studio reservation calendar and shoot schedules"
+    },
+    "/coupons/{couponId}": {
+      "schema": "CouponCode",
+      "description": "Custom discount promo codes for booking checkout"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Studio invoices and quotations registry"
+    }
+  }
+}
