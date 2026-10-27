@@ -67,9 +67,14 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ lang, onOpenAddR
     return r.serviceType === selectedCategory;
   });
 
-  const totalReviews = reviews.length;
+  // Deduplicate reviews by ID to guarantee unique elements
+  const uniqueReviews = Array.from(
+    new Map(filteredReviews.map((r, idx) => [r.id || `rev-index-${idx}`, r])).values()
+  );
+
+  const totalReviews = uniqueReviews.length;
   const avgRating = totalReviews > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
+    ? (uniqueReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
     : '5.0';
 
   return (
@@ -133,7 +138,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ lang, onOpenAddR
             { id: 'commercial', labelAr: 'الإعلانات التجارية', labelEn: 'Commercials' },
           ].map((tab) => (
             <button
-              key={tab.id}
+              key={`filter-tab-${tab.id}`}
               onClick={() => setSelectedCategory(tab.id as any)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer ${
                 selectedCategory === tab.id
@@ -148,9 +153,9 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ lang, onOpenAddR
 
         {/* Reviews Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredReviews.map((review) => (
+          {uniqueReviews.map((review, idx) => (
             <div
-              key={review.id}
+              key={`rev-card-${review.id || idx}-${idx}`}
               className="relative flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md transition-all hover:border-[#C82626]/30 group"
             >
               <div>
@@ -160,7 +165,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ lang, onOpenAddR
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
-                        key={s}
+                        key={`star-${review.id || idx}-${s}`}
                         className={`w-4 h-4 ${
                           s <= review.rating
                             ? 'text-amber-400 fill-amber-400'

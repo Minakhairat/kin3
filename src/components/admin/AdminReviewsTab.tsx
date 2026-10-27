@@ -208,9 +208,9 @@ export const AdminReviewsTab: React.FC<AdminReviewsTabProps> = ({ lang }) => {
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((rev) => (
+          {filtered.map((rev, index) => (
             <div
-              key={rev.id}
+              key={`admin-rev-${rev.id}-${index}`}
               className={`p-4 rounded-2xl border transition-all ${
                 rev.status === 'pending'
                   ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/50'
@@ -236,7 +236,7 @@ export const AdminReviewsTab: React.FC<AdminReviewsTabProps> = ({ lang }) => {
                     <div className="flex items-center text-amber-400">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
-                          key={s}
+                          key={`admin-star-${rev.id}-${s}`}
                           className={`w-3.5 h-3.5 ${
                             s <= rev.rating ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'
                           }`}

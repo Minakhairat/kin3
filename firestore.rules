@@ -305,10 +305,11 @@ service cloud.firestore {
       allow list: if resource.data.status == 'approved' || isAdmin();
 
       // Authenticated users can submit reviews with status: 'pending'
-      allow create: if isValidId(reviewId) && isSignedIn() &&
-                    isValidReview(incoming()) &&
-                    incoming().authorUid == request.auth.uid &&
-                    (incoming().status == 'pending' || isAdmin());
+      // Admins can create reviews with any status
+      allow create: if isValidId(reviewId) && (
+        (isAdmin() && isValidReview(incoming())) ||
+        (isSignedIn() && isValidReview(incoming()) && incoming().authorUid == request.auth.uid && incoming().status == 'pending')
+      );
 
       // Only admins can approve, edit, toggle featured, or delete reviews
       allow update: if isValidId(reviewId) && isAdmin() && isValidReview(incoming());
@@ -319,29 +320,45 @@ service cloud.firestore {
     match /packages_cms/{packageId} {
       allow get: if isValidId(packageId);
       allow list: if true;
-      allow create, update, delete: if isValidId(packageId) && isAdmin() && (request.method == 'delete' || isValidPackageCMS(incoming()));
+      allow create: if isValidId(packageId) && isAdmin() && isValidPackageCMS(incoming());
+      allow update: if isValidId(packageId) && isAdmin() && isValidPackageCMS(incoming());
+      allow delete: if isValidId(packageId) && isAdmin();
     }
 
     // 3. Limited-Time Promotions
     match /promotions/{promotionId} {
       allow get: if isValidId(promotionId);
       allow list: if true;
-      allow create, update, delete: if isValidId(promotionId) && isAdmin() && (request.method == 'delete' || isValidPromotion(incoming()));
+      allow create: if isValidId(promotionId) && isAdmin() && isValidPromotion(incoming());
+      allow update: if isValidId(promotionId) && isAdmin() && isValidPromotion(incoming());
+      allow delete: if isValidId(promotionId) && isAdmin();
     }
 
     // 4. Studio Operational Expenses (Admin Only)
     match /expenses/{expenseId} {
-      allow get, list, create, update, delete: if isValidId(expenseId) && isAdmin() && (request.method == 'delete' || isValidExpense(incoming()));
+      allow get: if isValidId(expenseId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(expenseId) && isAdmin() && isValidExpense(incoming());
+      allow update: if isValidId(expenseId) && isAdmin() && isValidExpense(incoming());
+      allow delete: if isValidId(expenseId) && isAdmin();
     }
 
     // 5. Studio Financial Transactions / Revenue (Admin Only)
     match /financial_transactions/{transactionId} {
-      allow get, list, create, update, delete: if isValidId(transactionId) && isAdmin() && (request.method == 'delete' || isValidTransaction(incoming()));
+      allow get: if isValidId(transactionId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(transactionId) && isAdmin() && isValidTransaction(incoming());
+      allow update: if isValidId(transactionId) && isAdmin() && isValidTransaction(incoming());
+      allow delete: if isValidId(transactionId) && isAdmin();
     }
 
     // 6. Gear & Equipment Inventory (Admin Only)
     match /gear_inventory/{gearId} {
-      allow get, list, create, update, delete: if isValidId(gearId) && isAdmin() && (request.method == 'delete' || isValidGear(incoming()));
+      allow get: if isValidId(gearId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(gearId) && isAdmin() && isValidGear(incoming());
+      allow update: if isValidId(gearId) && isAdmin() && isValidGear(incoming());
+      allow delete: if isValidId(gearId) && isAdmin();
     }
 
     // 7. Studio Bookings
@@ -349,21 +366,26 @@ service cloud.firestore {
       allow get: if isValidId(bookingId) && (isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email));
       allow list: if isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email);
       allow create: if isValidId(bookingId) && isValidBooking(incoming());
-      allow update, delete: if isValidId(bookingId) && isAdmin();
+      allow update: if isValidId(bookingId) && isAdmin() && isValidBooking(incoming());
+      allow delete: if isValidId(bookingId) && isAdmin();
     }
 
     // 8. Custom Discount Promo Codes
     match /coupons/{couponId} {
       allow get: if isValidId(couponId);
       allow list: if true;
-      allow create, update, delete: if isValidId(couponId) && isAdmin() && (request.method == 'delete' || isValidCoupon(incoming()));
+      allow create: if isValidId(couponId) && isAdmin() && isValidCoupon(incoming());
+      allow update: if isValidId(couponId) && isAdmin() && isValidCoupon(incoming());
+      allow delete: if isValidId(couponId) && isAdmin();
     }
 
     // 9. Studio Invoices Registry
     match /invoices/{invoiceId} {
       allow get: if isValidId(invoiceId) && (isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email));
       allow list: if isAdmin() || (isSignedIn() && resource.data.clientEmail == request.auth.token.email);
-      allow create, update, delete: if isValidId(invoiceId) && isAdmin() && (request.method == 'delete' || isValidInvoice(incoming()));
+      allow create: if isValidId(invoiceId) && isAdmin() && isValidInvoice(incoming());
+      allow update: if isValidId(invoiceId) && isAdmin() && isValidInvoice(incoming());
+      allow delete: if isValidId(invoiceId) && isAdmin();
     }
   }
 }

@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -189,14 +190,39 @@ export async function updateReviewModeration(
 ): Promise<void> {
   const path = `${REVIEWS_COLLECTION}/${id}`;
   try {
-    const updates: Partial<ReviewItem> = {
-      status,
-      updatedAt: new Date().toISOString(),
-    };
-    if (typeof isFeatured === 'boolean') updates.isFeatured = isFeatured;
-    if (typeof adminReply === 'string') updates.adminReply = adminReply.trim();
+    const docRef = doc(db, REVIEWS_COLLECTION, id);
+    const existingSnap = await getDoc(docRef);
+    const now = new Date().toISOString();
 
-    await setDoc(doc(db, REVIEWS_COLLECTION, id), updates, { merge: true });
+    if (!existingSnap.exists()) {
+      // Find seed item if this is a pre-curated review not yet written to Firestore
+      const seed = INITIAL_CURATED_REVIEWS.find((r) => r.id === id);
+      const fullDoc: ReviewItem = {
+        id,
+        authorUid: seed?.authorUid || 'seed_admin_author',
+        authorName: seed?.authorName || 'عميل استوديو كين',
+        authorEmail: seed?.authorEmail || '',
+        authorProject: seed?.authorProject || '',
+        rating: seed?.rating || 5,
+        comment: seed?.comment || 'تقييم تجربة التصوير في استوديو كين',
+        serviceType: seed?.serviceType || 'podcast',
+        status,
+        isFeatured: typeof isFeatured === 'boolean' ? isFeatured : (seed?.isFeatured ?? false),
+        adminReply: typeof adminReply === 'string' ? adminReply.trim() : (seed?.adminReply || ''),
+        createdAt: seed?.createdAt || now,
+        updatedAt: now,
+      };
+      await setDoc(docRef, fullDoc);
+    } else {
+      const updates: Partial<ReviewItem> = {
+        status,
+        updatedAt: now,
+      };
+      if (typeof isFeatured === 'boolean') updates.isFeatured = isFeatured;
+      if (typeof adminReply === 'string') updates.adminReply = adminReply.trim();
+
+      await updateDoc(docRef, updates);
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
@@ -208,14 +234,34 @@ export async function updateReviewDetails(
 ): Promise<void> {
   const path = `${REVIEWS_COLLECTION}/${id}`;
   try {
-    await setDoc(
-      doc(db, REVIEWS_COLLECTION, id),
-      {
+    const docRef = doc(db, REVIEWS_COLLECTION, id);
+    const existingSnap = await getDoc(docRef);
+    const now = new Date().toISOString();
+
+    if (!existingSnap.exists()) {
+      const seed = INITIAL_CURATED_REVIEWS.find((r) => r.id === id);
+      const fullDoc: ReviewItem = {
+        id,
+        authorUid: seed?.authorUid || 'seed_admin_author',
+        authorName: updates.authorName || seed?.authorName || 'عميل استوديو كين',
+        authorEmail: seed?.authorEmail || '',
+        authorProject: updates.authorProject !== undefined ? updates.authorProject : (seed?.authorProject || ''),
+        rating: updates.rating || seed?.rating || 5,
+        comment: updates.comment || seed?.comment || 'تقييم تجربة التصوير في استوديو كين',
+        serviceType: updates.serviceType || seed?.serviceType || 'podcast',
+        status: seed?.status || 'approved',
+        isFeatured: seed?.isFeatured ?? false,
+        adminReply: seed?.adminReply || '',
+        createdAt: seed?.createdAt || now,
+        updatedAt: now,
+      };
+      await setDoc(docRef, fullDoc);
+    } else {
+      await updateDoc(docRef, {
         ...updates,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
+        updatedAt: now,
+      });
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
